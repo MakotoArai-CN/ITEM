@@ -404,57 +404,62 @@ import LazyLoad from "vanilla-lazyload";
 
     async loadWeather() {
       const $box = $('#card__weather');
-      const { weatherApiKey: key, weatherNode } = window.config;
+      const cacheKey = 'weather-current-data';
+      const url = 'https://edge-api.item.ink/api/weather/current?locale=zh-cn';
+
+      const getAqiTone = (aqi) => {
+        if (!Number.isFinite(aqi)) return 'secondary';
+        if (aqi <= 50) return 'success';
+        if (aqi <= 100) return 'warning';
+        return 'danger';
+      };
 
       try {
-        if (!key) throw new Error('Weather API Key is not set');
-        let data = ls.get('weather-data');
+        let data = ls.get(cacheKey);
         if (!data) {
-          const host = weatherNode === '1' ? 'assets.msn.com' : 'assets.msn.cn';
-          const url = `https://${host}/service/segments/recoitems/weather?apikey=${key}&cuthour=false&market=zh-cn&locale=zh-cn`;
-          data = await fetch(url).then(r => r.json())
-            .then(r => JSON.parse(r[0]?.data) ?? {});
-
-          ls.set('weather-data', data, { ttl: 600 });
+          data = await fetch(url, {
+            referrer: window.location.href,
+            referrerPolicy: 'strict-origin-when-cross-origin'
+          }).then(r => {
+            if (!r.ok) throw new Error(`weather request failed: ${r.status}`);
+            return r.json();
+          });
+          ls.set(cacheKey, data, { ttl: 600 });
         }
 
-        const cur = data.responses?.[0]?.weather?.[0]?.current || {};
+        const cur = data.current || {};
+        const location = data.location || {};
         const unit = data.units?.temperature || '°C';
         const $el = $($('#tmpl-weather-content').prop('content')).clone();
 
         const map = {
-          '.weather-city': data.userProfile?.location?.City || '未知',
-          '.weather-temp': cur.temp,
+          '.weather-city': location.locality || location.displayName || '未知',
+          '.weather-temp': cur.temp ?? '--',
           '.weather-unit-temp': unit,
-          '.weather-text': cur.pvdrCap || cur.cap,
-          '.weather-feels': `${cur.feels || '-'}${unit}`,
-          '.weather-rh': `${cur.rh}%`,
-          '.weather-wind-dir': cur.pvdrWindDir || '风向',
-          '.weather-wind-spd': cur.pvdrWindSpd || `${cur.windSpd}km/h`,
+          '.weather-text': cur.pvdrCap || cur.cap || '未知',
+          '.weather-feels': `${cur.feels ?? '-'}${unit}`,
+          '.weather-rh': `${cur.rh ?? 'N/A'}%`,
+          '.weather-wind-dir': '风向',
+          '.weather-wind-spd': `${cur.windSpd ?? 'N/A'}${data.units?.speed || '公里/小时'}`,
           '.weather-uv': cur.uvDesc || 'N/A',
-          '.weather-vis': `${cur.vis || 'N/A'} ${data.units?.distance || 'km'}`
+          '.weather-vis': `${cur.vis ?? 'N/A'} ${data.units?.distance || 'km'}`
         };
 
         Object.entries(map).forEach(([sel, val]) => $el.find(sel).text(val));
 
-        const aqi = Number(cur.aqLevel);
-        const bg = Number.isFinite(aqi) ? (aqi <= 1 ? 'success' : aqi <= 2 ? 'warning' : 'danger') : 'secondary';
+        const aqi = Number(cur.aqi);
+        const bg = getAqiTone(aqi);
         $el.find('.weather-aqi').addClass(`bg-${bg} text-${bg} border-${bg}`).text(cur.aqiSeverity || 'N/A');
 
-        const iconMap = data.responses?.[0]?.weather?.[0]?.iconMap;
-        if (iconMap && cur.symbol) {
-          $el.find('.weather-icon').attr('src', `${iconMap.iconBase}${iconMap.symbolMap[cur.symbol] || ''}`);
+        if (cur.urlIcon) {
+          $el.find('.weather-icon').attr('src', cur.urlIcon);
         }
 
         $box.empty().append($el);
       } catch (e) {
         console.error('loadWeather failed', e);
         $box.empty().append($($('#tmpl-weather-error').prop('content')).clone());
-        if (!key) {
-          $box.find('.weather-retry-btn').prop('disabled', true);
-        } else {
-          $box.find('.weather-retry-btn').one('click', () => this.loadWeather());
-        }
+        $box.find('.weather-retry-btn').one('click', () => this.loadWeather());
       }
     }
 
