@@ -30,6 +30,7 @@ import LazyLoad from "vanilla-lazyload";
       this.setupCategory();
       this.setupFavorites();
       this.setupComponents();
+      this.setupComments();
     }
 
     initEvents() {
@@ -337,6 +338,63 @@ import LazyLoad from "vanilla-lazyload";
       }
 
 
+    }
+
+    setupComments() {
+      const $comments = $('#comments');
+      if ($comments.length === 0) return;
+
+      const COMMENT_PROFILE_KEY = 'item-comment-profile';
+      const $replyState = $('#comment-reply-state');
+      const $replyAuthor = $replyState.find('[data-reply-author]');
+      const $parent = $('#comment-parent');
+      const $textarea = $('#textarea');
+      const $form = $('#comment-form');
+      const $author = $('#comment-author');
+      const $mail = $('#comment-mail');
+      const $url = $('#comment-url');
+
+      if ($form.length && $author.length && $mail.length) {
+        const fillField = ($field, value) => {
+          if ($field.length && typeof value === 'string') {
+            $field.val(value);
+          }
+        };
+
+        const profile = ls.get(COMMENT_PROFILE_KEY);
+        if (profile && typeof profile === 'object') {
+          fillField($author, profile.author);
+          fillField($mail, profile.mail);
+          fillField($url, profile.url);
+        }
+
+        $form.off('submit.commentProfile').on('submit.commentProfile', () => {
+          ls.set(COMMENT_PROFILE_KEY, {
+            author: String($author.val() || '').trim(),
+            mail: String($mail.val() || '').trim(),
+            url: String($url.val() || '').trim()
+          });
+        });
+      }
+
+      $(document)
+        .off('click.commentReply', '.comment-reply-trigger')
+        .on('click.commentReply', '.comment-reply-trigger', (e) => {
+          const $btn = $(e.currentTarget);
+          $parent.val(String($btn.data('coid') || 0));
+          $replyAuthor.text($btn.data('author') || '');
+          $replyState.removeClass('d-none');
+          if ($textarea.length) {
+            $textarea[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            $textarea[0].focus();
+          }
+        });
+
+      $('#comment-reply-cancel').off('click').on('click', () => {
+        $parent.val('0');
+        $replyAuthor.text('');
+        $replyState.addClass('d-none');
+      });
     }
 
     handleAnchor(id) {
