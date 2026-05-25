@@ -13,8 +13,8 @@ if (!function_exists('threadedComments')) {
     }
 }
 ?>
-<div id="comments" class="card card-xl shadow-none rounded-0 px-0 pb-0">
-    <div class="card-header d-flex flex-wrap text-nowrap gap-2 align-items-center justify-content-between">
+<div id="comments" class="card card-xl card-body px-0 shadow-none rounded-0">
+    <div class="card-header d-flex flex-wrap text-nowrap gap-2 px-0">
         <div class="d-flex align-items-center gap-3 h4 mb-0">
             <i class="fa-solid fa-comment-dots"></i>
             <div class="mb-0">
@@ -26,7 +26,7 @@ if (!function_exists('threadedComments')) {
         </div>
     </div>
 
-    <div class="card-body">
+    <div class="card-body mx-0">
         <div id="comment-list">
             <?php if ($comments->have()): ?>
                 <?php $comments->listComments(['before' => '', 'after' => '']); ?>
@@ -41,7 +41,17 @@ if (!function_exists('threadedComments')) {
             <?php endif; ?>
         </div>
 
-        <?php $comments->pageNav('上一页', '下一页'); ?>
+        <nav class="navigation pagination">
+        <?php $comments->pageNav('上一页', '下一页', 2, '...', [
+            'wrapTag' => 'div',
+            'wrapClass' => 'nav-links',
+            'itemTag' => 'span',
+            'textTag' => 'span',
+            'currentClass' => 'page-numbers current',
+            'prevClass' => 'page-numbers prev',
+            'nextClass' => 'page-numbers next'
+        ]); ?>
+        </nav>
 
         <?php if ($allowComment): ?>
             <div id="respond-post-<?php echo (int) $this->cid; ?>" class="mt-4 mt-md-5 pt-4 border-top">
@@ -56,13 +66,13 @@ if (!function_exists('threadedComments')) {
                     <?php if (!$this->user->hasLogin()): ?>
                         <div class="row g-2 mb-3">
                             <div class="col-md-4">
-                                <input type="text" name="author" class="comment-form-control form-control form-control-sm border-0 bg-light px-3 py-2" placeholder="昵称 *" required>
+                                <input type="text" name="author" id="comment-author" data-comment-profile="author" class="comment-form-control form-control form-control-sm border-0 bg-light px-3 py-2" placeholder="昵称 *" required>
                             </div>
                             <div class="col-md-4">
-                                <input type="email" name="mail" class="comment-form-control form-control form-control-sm border-0 bg-light px-3 py-2" placeholder="邮箱 *" required>
+                                <input type="email" name="mail" id="comment-mail" data-comment-profile="mail" class="comment-form-control form-control form-control-sm border-0 bg-light px-3 py-2" placeholder="邮箱 *" required>
                             </div>
                             <div class="col-md-4">
-                                <input type="url" name="url" class="comment-form-control form-control form-control-sm border-0 bg-light px-3 py-2" placeholder="网址">
+                                <input type="url" name="url" id="comment-url" data-comment-profile="url" class="comment-form-control form-control form-control-sm border-0 bg-light px-3 py-2" placeholder="网址">
                             </div>
                         </div>
                     <?php endif; ?>
