@@ -462,8 +462,8 @@ import LazyLoad from "vanilla-lazyload";
 
     async loadWeather() {
       const $box = $('#card__weather');
-      const cacheKey = 'weather-current-data';
-      const url = 'https://edge-api.item.ink/api/weather/current?locale=zh-cn';
+      const url = String(window.config?.weatherApi || '').trim();
+      const cacheKey = `weather-current-data:${url}`;
 
       const getAqiTone = (aqi) => {
         if (!Number.isFinite(aqi)) return 'secondary';
@@ -473,6 +473,10 @@ import LazyLoad from "vanilla-lazyload";
       };
 
       try {
+        if (!url) {
+          throw new Error('Weather API is not configured');
+        }
+
         let data = ls.get(cacheKey);
         if (!data) {
           data = await fetch(url, {
@@ -517,7 +521,11 @@ import LazyLoad from "vanilla-lazyload";
       } catch (e) {
         console.error('loadWeather failed', e);
         $box.empty().append($($('#tmpl-weather-error').prop('content')).clone());
-        $box.find('.weather-retry-btn').one('click', () => this.loadWeather());
+        if (url) {
+          $box.find('.weather-retry-btn').one('click', () => this.loadWeather());
+        } else {
+          $box.find('.weather-retry-btn').prop('disabled', true);
+        }
       }
     }
 
